@@ -82,9 +82,14 @@ public class RebalancePushImpl extends RebalanceImpl {
     }
 
     @Override
+    /**
+     * 移除不需要的消息队列相关的信息，并返回是否移除成功
+     */
     public boolean removeUnnecessaryMessageQueue(MessageQueue mq, ProcessQueue pq) {
+        // 同步队列的消费进度，并移除
         this.defaultMQPushConsumerImpl.getOffsetStore().persist(mq);
         this.defaultMQPushConsumerImpl.getOffsetStore().removeOffset(mq);
+        // 顺序消费 并且是集群消费
         if (this.defaultMQPushConsumerImpl.isConsumeOrderly()
             && MessageModel.CLUSTERING.equals(this.defaultMQPushConsumerImpl.messageModel())) {
             try {
@@ -212,6 +217,9 @@ public class RebalancePushImpl extends RebalanceImpl {
     }
 
     @Override
+    /**
+     * 发起消息拉取请求。该调用是PushConsumer不断不断不断拉取消息的起点。
+     */
     public void dispatchPullRequest(List<PullRequest> pullRequestList) {
         for (PullRequest pullRequest : pullRequestList) {
             this.defaultMQPushConsumerImpl.executePullRequestImmediately(pullRequest);

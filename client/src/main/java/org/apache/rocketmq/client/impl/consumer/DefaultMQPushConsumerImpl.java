@@ -859,9 +859,12 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
     public void subscribe(String topic, String subExpression) throws MQClientException {
         try {
+            // 创建订阅数据
             SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(this.defaultMQPushConsumer.getConsumerGroup(),
                 topic, subExpression);
+            // 设置订阅的信息
             this.rebalanceImpl.getSubscriptionInner().put(topic, subscriptionData);
+            // 通过心跳同步将 Consumer 订阅信息到 Broker
             if (this.mQClientFactory != null) {
                 this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
             }
@@ -989,6 +992,9 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     }
 
     @Override
+    /**
+     * DefaultMQPushConsumerImpl.doRebalance
+     */
     public void doRebalance() {
         if (!this.pause) {
             this.rebalanceImpl.doRebalance(this.isConsumeOrderly());

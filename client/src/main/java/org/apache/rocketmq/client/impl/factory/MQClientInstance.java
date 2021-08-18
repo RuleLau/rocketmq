@@ -585,6 +585,14 @@ public class MQClientInstance {
         }
     }
 
+    /**
+     * 当从 Namesrv 无法获取时，使用 {@link DefaultMQProducer#createTopicKey}
+     * 对应的 Topic发布信息。目的是当 Broker 开启自动创建 Topic开关时，Broker 接收到消息后自动创建Topic
+     * @param topic
+     * @param isDefault
+     * @param defaultMQProducer
+     * @return
+     */
     public boolean updateTopicRouteInfoFromNameServer(final String topic, boolean isDefault,
         DefaultMQProducer defaultMQProducer) {
         try {

@@ -32,6 +32,7 @@ public class AllocateMessageQueueAveragely implements AllocateMessageQueueStrate
     @Override
     public List<MessageQueue> allocate(String consumerGroup, String currentCID, List<MessageQueue> mqAll,
         List<String> cidAll) {
+        // 校验参数是否正确
         if (currentCID == null || currentCID.length() < 1) {
             throw new IllegalArgumentException("currentCID is empty");
         }
@@ -50,8 +51,10 @@ public class AllocateMessageQueueAveragely implements AllocateMessageQueueStrate
                 cidAll);
             return result;
         }
-
+        // 平均分配，当前 Consumer 在消费集群里是第几个。这里就是为什么需要对传入的 cidAll 参数必须进行排序的原因。
+        // 如果不排序，Consumer 在本地计算出来的 index 无法一致，影响计算结果。
         int index = cidAll.indexOf(currentCID);
+        // 余数，即多少消息队列无法平均分配。
         int mod = mqAll.size() % cidAll.size();
         int averageSize =
             mqAll.size() <= cidAll.size() ? 1 : (mod > 0 && index < mod ? mqAll.size() / cidAll.size()
