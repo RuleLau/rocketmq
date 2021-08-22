@@ -50,7 +50,7 @@ public class AllocateMessageQueueAveragelyByCircle implements AllocateMessageQue
                 cidAll);
             return result;
         }
-
+        // 环状分配
         int index = cidAll.indexOf(currentCID);
         for (int i = index; i < mqAll.size(); i++) {
             if (i % cidAll.size() == index) {

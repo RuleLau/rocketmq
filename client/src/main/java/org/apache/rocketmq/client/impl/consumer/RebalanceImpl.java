@@ -133,6 +133,11 @@ public abstract class RebalanceImpl {
         return result;
     }
 
+    /**
+     * 请求Broker获得指定消息队列的分布式锁
+     * @param mq 队列
+     * @return 是否成功
+     */
     public boolean lock(final MessageQueue mq) {
         FindBrokerResult findBrokerResult = this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(), MixAll.MASTER_ID, true);
         if (findBrokerResult != null) {
@@ -142,8 +147,10 @@ public abstract class RebalanceImpl {
             requestBody.getMqSet().add(mq);
 
             try {
+                // 请求Broker获得指定消息队列的分布式锁
                 Set<MessageQueue> lockedMq =
-                    this.mQClientFactory.getMQClientAPIImpl().lockBatchMQ(findBrokerResult.getBrokerAddr(), requestBody, 1000);
+                        this.mQClientFactory.getMQClientAPIImpl().lockBatchMQ(findBrokerResult.getBrokerAddr(), requestBody, 1000);
+                // 设置消息处理队列锁定成功。锁定消息队列成功，可能本地没有消息处理队列，设置锁定成功会在lockAll()方法。
                 for (MessageQueue mmqq : lockedMq) {
                     ProcessQueue processQueue = this.processQueueTable.get(mmqq);
                     if (processQueue != null) {
@@ -246,8 +253,8 @@ public abstract class RebalanceImpl {
 
     /**
      * 根据消息模型，广播或者集群方式，分配消息队列
-     * @param topic
-     * @param isOrder
+     * @param topic 主题
+     * @param isOrder 是否顺序
      */
     private void rebalanceByTopic(final String topic, final boolean isOrder) {
         switch (messageModel) {
@@ -329,9 +336,12 @@ public abstract class RebalanceImpl {
         }
     }
 
+    /**
+     * 移除未订阅的topic对应的消息队列
+     */
     private void truncateMessageQueueNotMyTopic() {
         Map<String, SubscriptionData> subTable = this.getSubscriptionInner();
-
+        // 移除未订阅的消息队列
         for (MessageQueue mq : this.processQueueTable.keySet()) {
             if (!subTable.containsKey(mq.getTopic())) {
 
@@ -352,6 +362,7 @@ public abstract class RebalanceImpl {
      * @param mqSet 负载均衡结果后的消息队列数组
      * @param isOrder 是否顺序
      * @return 是否变更
+     * RebalancePushImpl#dispatchPullRequest
      */
     private boolean updateProcessQueueTableInRebalance(final String topic, final Set<MessageQueue> mqSet,
         final boolean isOrder) {
@@ -400,7 +411,7 @@ public abstract class RebalanceImpl {
         for (MessageQueue mq : mqSet) {
             if (!this.processQueueTable.containsKey(mq)) {
                 if (isOrder && !this.lock(mq)) {
-                    // 顺序消费
+                    // 顺序消费时，锁定消息队列。如果锁定失败，新增消息处理队列失败。
                     log.warn("doRebalance, {}, add a new mq failed, {}, because lock failed", consumerGroup, mq);
                     continue;
                 }

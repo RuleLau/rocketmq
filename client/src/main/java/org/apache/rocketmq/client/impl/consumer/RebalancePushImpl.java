@@ -84,12 +84,16 @@ public class RebalancePushImpl extends RebalanceImpl {
     @Override
     /**
      * 移除不需要的消息队列相关的信息，并返回是否移除成功
+     * 1. 持久化消费进度，并移除
+     * 2. 顺序消费&集群模式，解锁对该队列的锁定
+     * mq 消息队列
+     * pq 消息处理队列
      */
     public boolean removeUnnecessaryMessageQueue(MessageQueue mq, ProcessQueue pq) {
         // 同步队列的消费进度，并移除
         this.defaultMQPushConsumerImpl.getOffsetStore().persist(mq);
         this.defaultMQPushConsumerImpl.getOffsetStore().removeOffset(mq);
-        // 顺序消费 并且是集群消费
+        // 顺序消费 并且是集群消费，顺序消费移除时，解锁对队列的锁定
         if (this.defaultMQPushConsumerImpl.isConsumeOrderly()
             && MessageModel.CLUSTERING.equals(this.defaultMQPushConsumerImpl.messageModel())) {
             try {
@@ -115,6 +119,13 @@ public class RebalancePushImpl extends RebalanceImpl {
         return true;
     }
 
+    /**
+     * 延迟解锁 Broker 消息队列锁
+     * 当消息处理队列不存在消息，则直接解锁
+     * @param mq 消息队列
+     * @param pq 消息处理队列
+     * @return 是否解锁成功
+     */
     private boolean unlockDelay(final MessageQueue mq, final ProcessQueue pq) {
 
         if (pq.hasTempMessage()) {
@@ -221,6 +232,7 @@ public class RebalancePushImpl extends RebalanceImpl {
 
     @Override
     /**
+     * RebalancePushImpl#dispatchPullRequest
      * 发起消息拉取请求。该调用是PushConsumer不断不断不断拉取消息的起点。
      */
     public void dispatchPullRequest(List<PullRequest> pullRequestList) {

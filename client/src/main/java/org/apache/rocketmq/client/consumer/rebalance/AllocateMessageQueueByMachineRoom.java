@@ -32,22 +32,25 @@ public class AllocateMessageQueueByMachineRoom implements AllocateMessageQueueSt
     public List<MessageQueue> allocate(String consumerGroup, String currentCID, List<MessageQueue> mqAll,
         List<String> cidAll) {
         List<MessageQueue> result = new ArrayList<MessageQueue>();
+        // 参数校验
         int currentIndex = cidAll.indexOf(currentCID);
         if (currentIndex < 0) {
             return result;
         }
         List<MessageQueue> premqAll = new ArrayList<MessageQueue>();
+        // 计算符合当前配置的消费者数组('consumeridcs')对应的消息队列
         for (MessageQueue mq : mqAll) {
             String[] temp = mq.getBrokerName().split("@");
             if (temp.length == 2 && consumeridcs.contains(temp[0])) {
                 premqAll.add(mq);
             }
         }
-
+        // 平均分配
         int mod = premqAll.size() / cidAll.size();
         int rem = premqAll.size() % cidAll.size();
         int startIndex = mod * currentIndex;
         int endIndex = startIndex + mod;
+        // 将多余的结尾部分分配给前 rem 个 Consumer
         for (int i = startIndex; i < endIndex; i++) {
             result.add(mqAll.get(i));
         }

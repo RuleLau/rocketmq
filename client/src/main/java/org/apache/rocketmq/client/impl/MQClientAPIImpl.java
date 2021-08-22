@@ -936,6 +936,18 @@ public class MQClientAPIImpl {
         return response.getCode() == ResponseCode.SUCCESS;
     }
 
+    /**
+     * 核心方法，consumer 发回消息
+     * @param addr Broker地址
+     * @param msg 消息
+     * @param consumerGroup 消费分组
+     * @param delayLevel 延迟级别
+     * @param timeoutMillis 超时
+     * @param maxConsumeRetryTimes 消费最大重试次数
+     * @throws RemotingException 当远程调用发生异常时
+     * @throws MQBrokerException 当Broker发生异常时
+     * @throws InterruptedException 当线程中断时
+     */
     public void consumerSendMessageBack(
         final String addr,
         final MessageExt msg,
@@ -946,14 +958,14 @@ public class MQClientAPIImpl {
     ) throws RemotingException, MQBrokerException, InterruptedException {
         ConsumerSendMsgBackRequestHeader requestHeader = new ConsumerSendMsgBackRequestHeader();
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CONSUMER_SEND_MSG_BACK, requestHeader);
-
+        // 封装请求
         requestHeader.setGroup(consumerGroup);
         requestHeader.setOriginTopic(msg.getTopic());
         requestHeader.setOffset(msg.getCommitLogOffset());
         requestHeader.setDelayLevel(delayLevel);
         requestHeader.setOriginMsgId(msg.getMsgId());
         requestHeader.setMaxReconsumeTimes(maxConsumeRetryTimes);
-
+        // 调用发送消息
         RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr),
             request, timeoutMillis);
         assert response != null;
@@ -964,7 +976,7 @@ public class MQClientAPIImpl {
             default:
                 break;
         }
-
+        // 发送失败，抛出异常
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 

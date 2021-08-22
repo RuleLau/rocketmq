@@ -1076,7 +1076,14 @@ public class DefaultMessageStore implements MessageStore {
         return null;
     }
 
+    /**
+     * 根据 主题 + 队列编号 获取 消费队列
+     * @param topic 主题
+     * @param queueId 队列编号
+     * @return 消费队列
+     */
     public ConsumeQueue findConsumeQueue(String topic, int queueId) {
+        // 获取 topic 对应的 所有消费队列
         ConcurrentMap<Integer, ConsumeQueue> map = consumeQueueTable.get(topic);
         if (null == map) {
             ConcurrentMap<Integer, ConsumeQueue> newMap = new ConcurrentHashMap<Integer, ConsumeQueue>(128);
@@ -1087,7 +1094,7 @@ public class DefaultMessageStore implements MessageStore {
                 map = newMap;
             }
         }
-
+        // 获取 queueId 对应的 消费队列
         ConsumeQueue logic = map.get(queueId);
         if (null == logic) {
             ConsumeQueue newLogic = new ConsumeQueue(
@@ -1371,7 +1378,9 @@ public class DefaultMessageStore implements MessageStore {
      * @param dispatchRequest
      */
     public void putMessagePositionInfo(DispatchRequest dispatchRequest) {
+        // 根据topic 和 队列id 找到消费队列
         ConsumeQueue cq = this.findConsumeQueue(dispatchRequest.getTopic(), dispatchRequest.getQueueId());
+        // 将消费位置信息放入查询到的消费队列
         cq.putMessagePositionInfoWrapper(dispatchRequest);
     }
 
@@ -1438,6 +1447,10 @@ public class DefaultMessageStore implements MessageStore {
 
     class CommitLogDispatcherBuildIndex implements CommitLogDispatcher {
 
+        /**
+         *  建立 索引信息 到 IndexFile
+         * @param request request
+         */
         @Override
         public void dispatch(DispatchRequest request) {
             if (DefaultMessageStore.this.messageStoreConfig.isMessageIndexEnable()) {
@@ -1715,6 +1728,11 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
+    /**
+     * 重放消息到消费队列的线程服务
+     * 1. 该服务不断生成 消息位置信息 到 消费队列(ConsumeQueue)
+     * 2. 该服务不断生成 消息索引 到 索引文件(IndexFile)
+     */
     class ReputMessageService extends ServiceThread {
 
         /**
@@ -1770,13 +1788,14 @@ public class DefaultMessageStore implements MessageStore {
                     && this.reputFromOffset >= DefaultMessageStore.this.getConfirmOffset()) {
                     break;
                 }
-
+                // 获取从reputFromOffset开始的commitLog对应的MappeFile对应的MappedByteBuffer
                 SelectMappedBufferResult result = DefaultMessageStore.this.commitLog.getData(reputFromOffset);
                 if (result != null) {
                     try {
                         this.reputFromOffset = result.getStartOffset();
-
+                        // 遍历MappedByteBuffer
                         for (int readSize = 0; readSize < result.getSize() && doNext; ) {
+                            // 生成重放消息重放调度请求
                             DispatchRequest dispatchRequest =
                                 DefaultMessageStore.this.commitLog.checkMessageAndReturnSize(result.getByteBuffer(), false, false);
                             int size = dispatchRequest.getMsgSize();

@@ -29,14 +29,14 @@ import org.apache.rocketmq.common.message.MessageExt;
 public class Consumer {
 
     public static void main(String[] args) throws MQClientException {
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("please_rename_unique_group_name_3");
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("order_group");
 
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
 
-        consumer.subscribe("TopicTest", "TagA || TagC || TagD");
-
+        consumer.subscribe("TopicTestjjj", "TagA || TagC || TagD");
+        consumer.setNamesrvAddr("192.168.25.21:9876");
         consumer.registerMessageListener(new MessageListenerOrderly() {
-            AtomicLong consumeTimes = new AtomicLong(0);
+            final AtomicLong consumeTimes = new AtomicLong(0);
 
             @Override
             public ConsumeOrderlyStatus consumeMessage(List<MessageExt> msgs, ConsumeOrderlyContext context) {
