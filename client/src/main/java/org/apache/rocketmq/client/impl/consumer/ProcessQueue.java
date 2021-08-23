@@ -291,16 +291,22 @@ public class ProcessQueue {
         }
     }
 
+    /**
+     * 提交消费中的消息已消费成功，返回消费进度
+     * @return 消费进度
+     */
     public long commit() {
         try {
             this.lockTreeMap.writeLock().lockInterruptibly();
             try {
+                // 消费进度
                 Long offset = this.consumingMsgOrderlyTreeMap.lastKey();
                 msgCount.addAndGet(0 - this.consumingMsgOrderlyTreeMap.size());
                 for (MessageExt msg : this.consumingMsgOrderlyTreeMap.values()) {
                     msgSize.addAndGet(0 - msg.getBody().length);
                 }
                 this.consumingMsgOrderlyTreeMap.clear();
+                // 返回消费进度
                 if (offset != null) {
                     return offset + 1;
                 }
@@ -314,6 +320,10 @@ public class ProcessQueue {
         return -1;
     }
 
+    /**
+     * 指定消息重新消费
+     * @param msgs 消息
+     */
     public void makeMessageToCosumeAgain(List<MessageExt> msgs) {
         try {
             this.lockTreeMap.writeLock().lockInterruptibly();
@@ -330,6 +340,11 @@ public class ProcessQueue {
         }
     }
 
+    /**
+     * 获得持有消息前N条
+     * @param batchSize 条数
+     * @return 消息
+     */
     public List<MessageExt> takeMessags(final int batchSize) {
         List<MessageExt> result = new ArrayList<MessageExt>(batchSize);
         final long now = System.currentTimeMillis();
